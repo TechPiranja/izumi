@@ -1,0 +1,42 @@
+[gd_scene load_steps=9 format=3 uid="uid://kl8ctxyk8co6"]
+
+[ext_resource type="PackedScene" uid="uid://d2sgf8r7s8hgu" path="res://scenes/player.tscn" id="1_0wfyh"]
+[ext_resource type="PackedScene" uid="uid://bl8ac33qkrwl7" path="res://scenes/platform.tscn" id="2_sugp2"]
+[ext_resource type="Script" uid="uid://deswo27vcicpr" path="res://scripts/camera.gd" id="3_sugp2"]
+[ext_resource type="Script" uid="uid://t4ygkclcwt5c" path="res://scripts/platform_spawner.gd" id="4_jyhfs"]
+[ext_resource type="Script" uid="uid://cpmgnmbucud4s" path="res://scripts/cloud_spawner.gd" id="5_tbgi4"]
+[ext_resource type="PackedScene" uid="uid://dtowf30r7n2c7" path="res://scenes/HUD.tscn" id="8_85g3d"]
+[ext_resource type="PackedScene" uid="uid://boeb0o4eak2ou" path="res://scenes/ground.tscn" id="8_tipki"]
+[ext_resource type="PackedScene" uid="uid://dqqkbag0slmo6" path="res://scenes/restartPad.tscn" id="9_85g3d"]
+
+[node name="Node2D" type="Node2D"]
+position = Vector2(310, 210)
+
+[node name="Player" parent="." instance=ExtResource("1_0wfyh")]
+z_index = 1
+position = Vector2(-204, 33)
+scale = Vector2(2, 2)
+
+[node name="Platform" parent="." instance=ExtResource("2_sugp2")]
+position = Vector2(-6, 2)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("3_sugp2")
+
+[node name="PlatformSpawner" type="Node2D" parent="."]
+script = ExtResource("4_jyhfs")
+
+[node name="CloudSpawner" type="Node2D" parent="."]
+script = ExtResource("5_tbgi4")
+
+[node name="Ground" parent="." instance=ExtResource("8_tipki")]
+position = Vector2(-53, 169)
+
+[node name="RestartPad" parent="." instance=ExtResource("9_85g3d")]
+position = Vector2(238, 98)
+
+[node name="Hud" parent="." instance=ExtResource("8_85g3d")]
+
+[connection signal="player_touched" from="RestartPad" to="Player" method="refill_wings"]
+[connection signal="player_touched" from="RestartPad" to="PlatformSpawner" method="reset"]
+[connection signal="player_touched" from="RestartPad" to="Hud" method="reset"]
