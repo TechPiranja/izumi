@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://bl8ac33qkrwl7"]
+[gd_scene load_steps=4 format=3 uid="uid://bl8ac33qkrwl7"]
 
 [ext_resource type="Texture2D" uid="uid://082360001ga6" path="res://sprites/platform.png" id="1_ba0x2"]
+[ext_resource type="Script" path="res://scripts/platform.gd" id="1_tv4dh"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v4t87"]
 size = Vector2(124, 80)
 
 [node name="Platform" type="StaticBody2D"]
+script = ExtResource("1_tv4dh")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(2, 24)

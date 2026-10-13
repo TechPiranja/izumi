@@ -1,63 +1,44 @@
 extends Node2D
 
-const CLOUD_SCENE := preload("res://scenes/cloud.tscn")
-const BAND_HEIGHT := 250.0
-const BANDS_ABOVE := 5
-const BANDS_BELOW := 4
-const Y_JITTER := 0.3
-const BEHIND_CHANCE := 0.8
-const MIN_SPEED := 15.0
-const MAX_SPEED := 35.0
+const CLOUD_SCENE := preload("res://scenes/environment/cloud.tscn")
+## Size of the cloud field around the player, in screen sizes.
+const FIELD_WIDTH := 1.5
+const FIELD_ABOVE := 2.0
+const FIELD_BELOW := 0.75
 
-@export var player_path: NodePath = ^"../Player"
-
-var player: CharacterBody2D
-var clouds := {}
+@export var player: Player
+## Fixed number of clouds. They are recycled, never freed.
+@export var cloud_count := 30
 
 
 func _ready() -> void:
-	player = get_node(player_path)
-	_update_clouds(true)
+	var field := _field()
+	for i in cloud_count:
+		var cloud: Cloud = CLOUD_SCENE.instantiate()
+		add_child(cloud)
+		# Start with a random spot somewhere inside the field.
+		cloud.global_position = player.global_position + field.position + Vector2(
+			randf_range(0.0, field.size.x),
+			randf_range(0.0, field.size.y),
+		)
+		cloud.randomize_look()
 
 
+## Clouds that leave the field re-enter on the opposite side.
 func _process(_delta: float) -> void:
-	_update_clouds(false)
+	var field := _field()
+	for cloud: Cloud in get_children():
+		var local := cloud.global_position - player.global_position - field.position
+		# Modulo on x and y: a cloud that leaves the field on one side
+		# comes back in on the other side.
+		var wrapped := Vector2(fposmod(local.x, field.size.x), fposmod(local.y, field.size.y))
+		if not wrapped.is_equal_approx(local):
+			cloud.global_position = player.global_position + field.position + wrapped
+			cloud.randomize_look()
 
 
-func _update_clouds(fill_visible: bool) -> void:
-	var center_band := int(floor(player.global_position.y / BAND_HEIGHT))
-	var first_band := center_band - BANDS_ABOVE
-	var last_band := center_band + BANDS_BELOW
-
-	for band in clouds.keys():
-		var cloud: Node2D = clouds[band]
-		if band < first_band or band > last_band or _too_far_sideways(cloud):
-			cloud.queue_free()
-			clouds.erase(band)
-
-	for band in range(first_band, last_band + 1):
-		if not clouds.has(band):
-			clouds[band] = _spawn_cloud(band, fill_visible)
-
-
-func _spawn_cloud(band: int, anywhere: bool) -> Node2D:
+## The field relative to the player: `position` is the top-left corner, plus `size`.
+func _field() -> Rect2:
 	var view := get_viewport_rect().size
-	var y := (band + 0.5 + randf_range(-Y_JITTER, Y_JITTER)) * BAND_HEIGHT
-	var on_screen := absf(y - player.global_position.y) < view.y / 2.0 + 100.0
-
-	var x := player.global_position.x
-	if on_screen and not anywhere:
-		x -= view.x / 2.0 + 150.0
-	else:
-		x += randf_range(-view.x, view.x)
-
-	var cloud: Node2D = CLOUD_SCENE.instantiate()
-	cloud.position = to_local(Vector2(x, y))
-	cloud.z_index = -1 if randf() < BEHIND_CHANCE else 1
-	cloud.speed = randf_range(MIN_SPEED, MAX_SPEED)
-	add_child(cloud)
-	return cloud
-
-
-func _too_far_sideways(cloud: Node2D) -> bool:
-	return absf(cloud.global_position.x - player.global_position.x) > get_viewport_rect().size.x * 1.25
+	var size := Vector2(view.x * FIELD_WIDTH, view.y * (FIELD_ABOVE + FIELD_BELOW))
+	return Rect2(Vector2(-size.x / 2.0, -view.y * FIELD_ABOVE), size)

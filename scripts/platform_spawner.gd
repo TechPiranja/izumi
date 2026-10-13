@@ -1,31 +1,41 @@
+## Builds an endless ladder of platforms upwards and removes the ones far below the player.
 extends Node2D
 
+## How much higher the next platform is placed.
 const MIN_RISE := 60.0
 const MAX_RISE := 130.0
+## How far to the left or right the next platform may be shifted.
 const MAX_HORIZONTAL_STEP := 250.0
+## Minimum distance between the centers of two platforms.
 const MIN_DISTANCE := 120.0
+## How many platforms are built when a run starts.
+const INITIAL_PLATFORMS := 15
+## How often a random position is tried before falling back to going straight up.
+const MAX_PLACEMENT_ATTEMPTS := 20
 
-const PLATFORM_TYPES := [
-	{"scene": preload("res://scenes/platform.tscn"), "weight": 6.0},
-	{"scene": preload("res://scenes/moving_platform.tscn"), "weight": 2.0},
-	{"scene": preload("res://scenes/crumble_platform.tscn"), "weight": 2.0},
-]
+const WING_ORB_SCENE := preload("res://scenes/collectibles/wing_orb.tscn")
+## Where an orb floats, relative to the platform it belongs to.
+const ORB_OFFSET := Vector2(0.0, -110.0)
 
-@export var player_path: NodePath = ^"../Player"
-@export var start_platform_path: NodePath = ^"../Platform"
+@export var player: Player
+## The platform the ladder starts from.
+@export var start_platform: Node2D
+## The kinds of platforms that can spawn, each with a weight.
+@export var platform_types: Array[PlatformType]
+## Chance (0 to 1) that a new platform gets a wing orb above it.
+@export_range(0.0, 1.0) var orb_chance := 0.15
 
-var player: CharacterBody2D
-var start_platform: Node2D
+## Height and x position of the most recently placed platform.
 var highest_y: float
 var last_x: float
 
 
 func _ready() -> void:
-	player = get_node(player_path)
-	start_platform = get_node(start_platform_path)
+	assert(not platform_types.is_empty(), "PlatformSpawner needs at least one entry in platform_types")
 	reset()
 
 
+## Removes all platforms and builds a fresh ladder. Connected to the restart pad.
 func reset() -> void:
 	for child in get_children():
 		remove_child(child)
@@ -34,12 +44,13 @@ func reset() -> void:
 	highest_y = start_platform.global_position.y
 	last_x = start_platform.global_position.x
 
-	for i in range(15):
+	for i in INITIAL_PLATFORMS:
 		_spawn_platform()
 
 
 func _process(_delta: float) -> void:
 	var viewport_height := get_viewport_rect().size.y
+	# Always keep platforms ready up to one screen height above the player.
 	while highest_y > player.global_position.y - viewport_height:
 		_spawn_platform()
 
@@ -47,54 +58,63 @@ func _process(_delta: float) -> void:
 
 
 func _spawn_platform() -> void:
-	var platform: Node2D = _pick_scene().instantiate()
-	var extra := _extra_width(platform)
-
-	var prev_pos := Vector2(last_x, highest_y)
-	var pos := prev_pos
-
-	for attempt in range(20):
-		var rise := randf_range(MIN_RISE, MAX_RISE)
-		var step := randf_range(-MAX_HORIZONTAL_STEP, MAX_HORIZONTAL_STEP)
-		pos = prev_pos + Vector2(step, -rise)
-
-		if not _too_close_to_any(pos, extra):
-			break
+	var platform: Platform = _pick_scene().instantiate()
+	var pos := _find_position(platform.get_extra_width())
 
 	last_x = pos.x
 	highest_y = pos.y
 
-	platform.set_meta("center", pos)
-	platform.set_meta("extra", extra)
+	platform.spawn_center = pos
 	platform.position = to_local(pos)
+
+	if randf() < orb_chance:
+		# Child of the platform: it moves with it and is removed together with it.
+		var orb := WING_ORB_SCENE.instantiate()
+		orb.position = ORB_OFFSET
+		platform.add_child(orb)
+
 	add_child(platform)
 
 
+## Finds a spot above the previous platform that keeps enough distance to all others.
+func _find_position(extra: float) -> Vector2:
+	var prev_pos := Vector2(last_x, highest_y)
+
+	for attempt in MAX_PLACEMENT_ATTEMPTS:
+		var rise := randf_range(MIN_RISE, MAX_RISE)
+		var step := randf_range(-MAX_HORIZONTAL_STEP, MAX_HORIZONTAL_STEP)
+		var pos := prev_pos + Vector2(step, -rise)
+		if not _too_close_to_any(pos, extra):
+			return pos
+
+	# Fallback: all other platforms are below, so going straight up always finds room.
+	var fallback := prev_pos
+	while _too_close_to_any(fallback, extra):
+		fallback.y -= MIN_RISE
+	return fallback
+
+
+## Weighted random pick: roll a number up to the total weight, then subtract
+## the weights one by one until the roll is used up.
 func _pick_scene() -> PackedScene:
 	var total := 0.0
-	for entry in PLATFORM_TYPES:
-		total += entry["weight"]
+	for type in platform_types:
+		total += type.weight
 
 	var roll := randf() * total
-	for entry in PLATFORM_TYPES:
-		roll -= entry["weight"]
+	for type in platform_types:
+		roll -= type.weight
 		if roll <= 0.0:
-			return entry["scene"]
+			return type.scene
 
-	return PLATFORM_TYPES[0]["scene"]
-
-
-func _extra_width(platform: Node) -> float:
-	if "move_distance" in platform:
-		return platform.move_distance
-
-	return 0.0
+	return platform_types[0].scene
 
 
 func _too_close_to_any(pos: Vector2, extra: float) -> bool:
 	for child in get_children():
-		var min_dist: float = MIN_DISTANCE + extra + child.get_meta("extra")
-		if pos.distance_to(child.get_meta("center")) < min_dist:
+		var other := child as Platform
+		var min_dist := MIN_DISTANCE + extra + other.get_extra_width()
+		if pos.distance_to(other.spawn_center) < min_dist:
 			return true
 
 	return false

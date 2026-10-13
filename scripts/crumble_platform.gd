@@ -1,4 +1,4 @@
-extends StaticBody2D
+extends Platform
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var detect_area: Area2D = $DetectArea
@@ -14,6 +14,7 @@ func _physics_process(_delta: float) -> void:
 	if triggered:
 		return
 
+	# Only crumble when the player stands on top, not when bumping into it from below.
 	for body in detect_area.get_overlapping_bodies():
 		if body is CharacterBody2D:
 			var character := body as CharacterBody2D

@@ -1,17 +1,16 @@
+class_name Player
 extends CharacterBody2D
-
-signal wing_charges_changed(charges: int)
 
 const SPEED = 300.0
 const JUMP_VELOCITY = -550.0
 const AIR_JUMP_VELOCITY = -500.0
-const MAX_WING_CHARGES := 3
 
-var wing_charges := MAX_WING_CHARGES
+@onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var wings: WingAbility = $WingAbility
 
 
 func _ready() -> void:
-	$AnimatedSprite2D.play("idle")
+	sprite.play("idle")
 
 
 func _physics_process(delta: float) -> void:
@@ -21,28 +20,17 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("move_up"):
 		if is_on_floor():
 			velocity.y = JUMP_VELOCITY
-		elif wing_charges > 0:
-			_air_jump()
+		elif wings.try_air_jump():
+			# The ability only checks and uses a charge; the jump itself stays with the player.
+			velocity.y = AIR_JUMP_VELOCITY
 
 	var direction := Input.get_axis("move_left", "move_right")
 	if direction:
 		velocity.x = direction * SPEED
-		$AnimatedSprite2D.play("run")
-		$AnimatedSprite2D.flip_h = direction < 0
+		sprite.play("run")
+		sprite.flip_h = direction < 0
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
-		$AnimatedSprite2D.play("idle")
+		sprite.play("idle")
 
 	move_and_slide()
-
-
-func _air_jump() -> void:
-	wing_charges -= 1
-	velocity.y = AIR_JUMP_VELOCITY
-	$WingBurst.restart()
-	wing_charges_changed.emit(wing_charges)
-
-
-func refill_wings() -> void:
-	wing_charges = MAX_WING_CHARGES
-	wing_charges_changed.emit(wing_charges)

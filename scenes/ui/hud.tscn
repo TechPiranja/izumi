@@ -5,7 +5,6 @@
 
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1_qpvh6")
-player_path = null
 pixels_per_meter = null
 
 [node name="HeightLabel" type="Label" parent="."]
