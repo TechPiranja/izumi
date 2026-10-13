@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://d2sgf8r7s8hgu"]
+[gd_scene load_steps=20 format=3 uid="uid://d2sgf8r7s8hgu"]
 
 [ext_resource type="Texture2D" uid="uid://47mwemsaxmis" path="res://sprites/izumi.png" id="1_3vyb7"]
 [ext_resource type="Script" uid="uid://driekvdldswxu" path="res://scripts/player.gd" id="1_g2els"]
@@ -49,6 +49,14 @@ region = Rect2(200, 0, 100, 100)
 atlas = ExtResource("3_qhqgy")
 region = Rect2(300, 0, 100, 100)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_jej6c"]
+atlas = ExtResource("3_qhqgy")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f1ej7"]
+atlas = ExtResource("3_qhqgy")
+region = Rect2(500, 0, 100, 100)
+
 [sub_resource type="SpriteFrames" id="SpriteFrames_ur7pv"]
 animations = [{
 "frames": [{
@@ -89,10 +97,16 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_3v2ag")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jej6c")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_f1ej7")
 }],
 "loop": true,
 "name": &"run",
-"speed": 5.0
+"speed": 8.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3vyb7"]
@@ -104,8 +118,7 @@ script = ExtResource("1_g2els")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_ur7pv")
 animation = &"run"
-frame = 3
-frame_progress = 0.0758296
+frame = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0.5, 27.5)

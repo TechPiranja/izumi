@@ -8,9 +8,9 @@
 [ext_resource type="Script" uid="uid://b3amw2r2dqapo" path="res://scripts/resources/platform_type.gd" id="5_ya4ey"]
 [ext_resource type="PackedScene" uid="uid://ox1tx5sumtfb" path="res://scenes/platforms/moving_platform.tscn" id="6_eb6dy"]
 [ext_resource type="PackedScene" uid="uid://b0yy4ru18g0j" path="res://scenes/platforms/crumble_platform.tscn" id="7_trceg"]
-[ext_resource type="PackedScene" uid="uid://dtowf30r7n2c7" path="res://scenes/ui/hud.tscn" id="8_85g3d"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_85g3d"]
 [ext_resource type="PackedScene" uid="uid://boeb0o4eak2ou" path="res://scenes/environment/ground.tscn" id="8_tipki"]
-[ext_resource type="PackedScene" uid="uid://dqqkbag0slmo6" path="res://scenes/environment/restart_pad.tscn" id="9_85g3d"]
+[ext_resource type="PackedScene" path="res://scenes/environment/restart_pad.tscn" id="9_85g3d"]
 
 [sub_resource type="Resource" id="Resource_a8y0u"]
 script = ExtResource("5_ya4ey")
@@ -33,7 +33,7 @@ metadata/_custom_type_script = "uid://b3amw2r2dqapo"
 [node name="Node2D" type="Node2D"]
 
 [node name="Player" parent="." instance=ExtResource("1_0wfyh")]
-z_index = 1
+z_index = 2
 position = Vector2(-204, 33)
 scale = Vector2(2, 2)
 
@@ -63,7 +63,6 @@ position = Vector2(238, 98)
 [node name="Hud" parent="." node_paths=PackedStringArray("player", "wings") instance=ExtResource("8_85g3d")]
 player = NodePath("../Player")
 wings = NodePath("../Player/WingAbility")
-pixels_per_meter = 100.0
 
 [connection signal="player_touched" from="RestartPad" to="Player/WingAbility" method="refill"]
 [connection signal="player_touched" from="RestartPad" to="PlatformSpawner" method="reset"]

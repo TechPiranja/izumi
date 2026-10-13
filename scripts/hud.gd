@@ -1,11 +1,13 @@
 extends CanvasLayer
 
+const WING_SLOT_SCENE := preload("res://scenes/ui/wing_slot.tscn")
+
 @export var player: Player
 @export var wings: WingAbility
 @export var pixels_per_meter := 100.0
 
 @onready var label: Label = $HeightLabel
-@onready var wing_label: Label = $WingLabel
+@onready var wing_slots: HBoxContainer = $WingSlots
 
 ## The player's y position at the start, used as height 0.
 var start_y: float
@@ -14,6 +16,11 @@ var best_height := 0.0
 
 func _ready() -> void:
 	start_y = player.global_position.y
+
+	# One slot per possible wing charge.
+	for i in WingAbility.MAX_CHARGES:
+		wing_slots.add_child(WING_SLOT_SCENE.instantiate())
+
 	wings.charges_changed.connect(_on_wing_charges_changed)
 	_on_wing_charges_changed(wings.charges)
 
@@ -30,5 +37,8 @@ func reset() -> void:
 	best_height = 0.0
 
 
+## Shows a wing in the first `charges` slots, the rest stay empty.
 func _on_wing_charges_changed(charges: int) -> void:
-	wing_label.text = "Flügel: %d" % charges
+	for i in wing_slots.get_child_count():
+		var slot: WingSlot = wing_slots.get_child(i)
+		slot.set_filled(i < charges)

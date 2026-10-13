@@ -10,12 +10,13 @@ const MAX_HORIZONTAL_STEP := 250.0
 const MIN_DISTANCE := 120.0
 ## How many platforms are built when a run starts.
 const INITIAL_PLATFORMS := 15
-## How often a random position is tried before falling back to going straight up.
+## How many random positions are tried before taking the best one found.
 const MAX_PLACEMENT_ATTEMPTS := 20
 
 const WING_ORB_SCENE := preload("res://scenes/collectibles/wing_orb.tscn")
-## Where an orb floats, relative to the platform it belongs to.
-const ORB_OFFSET := Vector2(0.0, -110.0)
+## Where an orb floats, relative to the platform it belongs to: centered, just above its top edge.
+## Keep it low: the next platform can be only MIN_RISE above and would cover a higher orb.
+const ORB_OFFSET := Vector2(0.0, -50.0)
 
 @export var player: Player
 ## The platform the ladder starts from.
@@ -79,19 +80,24 @@ func _spawn_platform() -> void:
 ## Finds a spot above the previous platform that keeps enough distance to all others.
 func _find_position(extra: float) -> Vector2:
 	var prev_pos := Vector2(last_x, highest_y)
+	var best_pos := prev_pos
+	var best_clearance := -INF
 
 	for attempt in MAX_PLACEMENT_ATTEMPTS:
 		var rise := randf_range(MIN_RISE, MAX_RISE)
 		var step := randf_range(-MAX_HORIZONTAL_STEP, MAX_HORIZONTAL_STEP)
 		var pos := prev_pos + Vector2(step, -rise)
-		if not _too_close_to_any(pos, extra):
-			return pos
 
-	# Fallback: all other platforms are below, so going straight up always finds room.
-	var fallback := prev_pos
-	while _too_close_to_any(fallback, extra):
-		fallback.y -= MIN_RISE
-	return fallback
+		var clearance := _clearance(pos, extra)
+		if clearance >= 0.0:
+			return pos
+		if clearance > best_clearance:
+			best_clearance = clearance
+			best_pos = pos
+
+	# No spot had enough room (swinging platforms ask for a lot): take the roomiest one.
+	# Going higher instead would leave gaps the player can't jump.
+	return best_pos
 
 
 ## Weighted random pick: roll a number up to the total weight, then subtract
@@ -110,14 +116,16 @@ func _pick_scene() -> PackedScene:
 	return platform_types[0].scene
 
 
-func _too_close_to_any(pos: Vector2, extra: float) -> bool:
+## How much room `pos` has to the closest platform, beyond the required distance.
+## Negative means it is too close.
+func _clearance(pos: Vector2, extra: float) -> float:
+	var smallest := INF
 	for child in get_children():
 		var other := child as Platform
 		var min_dist := MIN_DISTANCE + extra + other.get_extra_width()
-		if pos.distance_to(other.spawn_center) < min_dist:
-			return true
+		smallest = minf(smallest, pos.distance_to(other.spawn_center) - min_dist)
 
-	return false
+	return smallest
 
 
 func _cleanup_platforms(viewport_height: float) -> void:
