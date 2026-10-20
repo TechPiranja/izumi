@@ -4,7 +4,9 @@ extends Control
 
 const FONT := preload("res://fonts/PixelifySans-Bold.ttf")
 const ORB_TEXTURE := preload("res://sprites/wing_orb.png")
-const CARD_SIZE := Vector2(200.0, 220.0)
+## Everything inside the card is drawn relative to this, so the card can be made bigger or smaller.
+const UI_SCALE := 0.6
+const CARD_SIZE := Vector2(200.0, 220.0) * UI_SCALE
 const COLOR_CREAM := Color("fff4dc")
 const COLOR_GOLD := Color("ffd35e")
 const COLOR_DARK := Color(0.35, 0.15, 0.6)
@@ -32,17 +34,17 @@ func _init(card_kind := "infinity") -> void:
 
 func _draw() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(1.0, 0.96, 0.86, 0.95) if selected else Color(0.1, 0.07, 0.2, 0.55)
+	style.bg_color = Color(1.0, 0.96, 0.86, 0.95) if selected else Color(0.1, 0.07, 0.2, 0.88)
 	style.border_color = COLOR_GOLD if selected else Color(1.0, 0.96, 0.86, 0.4)
-	style.set_border_width_all(6 if selected else 3)
-	style.set_corner_radius_all(16)
+	style.set_border_width_all(4 if selected else 2)
+	style.set_corner_radius_all(12)
 	draw_style_box(style, Rect2(Vector2.ZERO, CARD_SIZE))
 
 	var center := CARD_SIZE * 0.5
 	var ink := Color("6b4a2e") if selected else COLOR_CREAM
 	match kind:
 		"tutorial":
-			_draw_centered_text("?", center, 130, ink)
+			_draw_centered_text("?", center, roundi(130.0 * UI_SCALE), ink)
 		"infinity":
 			_draw_infinity(center, ink)
 		"dark":
@@ -63,13 +65,13 @@ func _draw_infinity(center: Vector2, color: Color) -> void:
 	for i in steps + 1:
 		var t := TAU * float(i) / steps
 		var denominator := 1.0 + sin(t) * sin(t)
-		points.append(center + Vector2(cos(t), sin(t) * cos(t)) * 70.0 / denominator * Vector2(1.0, 1.4))
-	draw_polyline(points, color, 12.0, true)
+		points.append(center + Vector2(cos(t), sin(t) * cos(t)) * 70.0 * UI_SCALE / denominator * Vector2(1.0, 1.4))
+	draw_polyline(points, color, 12.0 * UI_SCALE, true)
 
 
 func _draw_dark_orb(center: Vector2) -> void:
 	# Two soft rings around the black orb, like a sound wave.
-	draw_arc(center, 78.0, 0.0, TAU, 48, Color(COLOR_DARK, 0.35), 5.0)
-	draw_arc(center, 58.0, 0.0, TAU, 48, Color(COLOR_DARK, 0.6), 5.0)
-	var orb_size := Vector2(84.0, 84.0)
+	draw_arc(center, 78.0 * UI_SCALE, 0.0, TAU, 48, Color(COLOR_DARK, 0.35), 4.0)
+	draw_arc(center, 58.0 * UI_SCALE, 0.0, TAU, 48, Color(COLOR_DARK, 0.6), 4.0)
+	var orb_size := Vector2(84.0, 84.0) * UI_SCALE
 	draw_texture_rect(orb_texture, Rect2(center - orb_size * 0.5, orb_size), false, Color(0.4, 0.15, 0.65))

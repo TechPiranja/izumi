@@ -7,7 +7,7 @@ const IZUMI_TEXTURE := preload("res://sprites/izumi.png")
 const CLOUD_SCENE := preload("res://scenes/environment/cloud.tscn")
 const SKY_COLOR := Color(0.326, 0.553, 0.587)
 const CLOUD_COUNT := 9
-const CARD_GAP := 36.0
+const CARD_GAP := 22.0
 const SELECTED_SCALE := 1.12
 
 const KINDS := ["tutorial", "infinity", "dark"]
@@ -95,7 +95,7 @@ func _build_character() -> void:
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = frames
 	sprite.scale = Vector2(2.4, 2.4)
-	sprite.position = Vector2(get_viewport_rect().size.x * 0.5, 245.0)
+	sprite.position = Vector2(get_viewport_rect().size.x * 0.5, 300.0)
 	add_child(sprite)
 	sprite.play("default")
 
@@ -104,7 +104,7 @@ func _build_cards() -> void:
 	var screen := get_viewport_rect().size
 	var total_width := MenuCard.CARD_SIZE.x * KINDS.size() + CARD_GAP * (KINDS.size() - 1)
 	var left := (screen.x - total_width) * 0.5
-	var top := screen.y - MenuCard.CARD_SIZE.y - 30.0
+	var top := screen.y - MenuCard.CARD_SIZE.y - 40.0
 
 	for i in KINDS.size():
 		var card := MenuCard.new(KINDS[i])
