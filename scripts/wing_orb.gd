@@ -1,4 +1,5 @@
 ## Collectible that gives the player one wing charge.
+class_name WingOrb
 extends Area2D
 
 ## Layer order: platforms 0, orb 1, player 2
@@ -38,4 +39,7 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	# If the player is already at max charges the orb stays, so it can be picked up later.
 	if body is Player and body.wings.add_charge():
+		Sfx.play("orb")
+		Fx.burst(self, global_position, Color(1.0, 0.95, 0.6), 18, 200.0, 5.0)
+		Fx.float_text(self, global_position, "+1", Color(1.0, 0.97, 0.75))
 		queue_free()

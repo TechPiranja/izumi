@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://kl8ctxyk8co6"]
+[gd_scene load_steps=16 format=3 uid="uid://kl8ctxyk8co6"]
 
 [ext_resource type="PackedScene" uid="uid://d2sgf8r7s8hgu" path="res://scenes/player.tscn" id="1_0wfyh"]
 [ext_resource type="PackedScene" uid="uid://bl8ac33qkrwl7" path="res://scenes/platforms/platform.tscn" id="2_sugp2"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_85g3d"]
 [ext_resource type="PackedScene" uid="uid://boeb0o4eak2ou" path="res://scenes/environment/ground.tscn" id="8_tipki"]
 [ext_resource type="PackedScene" path="res://scenes/environment/restart_pad.tscn" id="9_85g3d"]
+[ext_resource type="Script" path="res://scripts/sky.gd" id="10_sky"]
 
 [sub_resource type="Resource" id="Resource_a8y0u"]
 script = ExtResource("5_ya4ey")
@@ -50,6 +51,10 @@ player = NodePath("../Player")
 start_platform = NodePath("../Platform")
 platform_types = Array[ExtResource("5_ya4ey")]([SubResource("Resource_a8y0u"), SubResource("Resource_jkv2x"), SubResource("Resource_jbj1t")])
 
+[node name="Sky" type="CanvasLayer" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("10_sky")
+player = NodePath("../Player")
+
 [node name="CloudSpawner" type="Node2D" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("5_tbgi4")
 player = NodePath("../Player")
@@ -67,3 +72,4 @@ wings = NodePath("../Player/WingAbility")
 [connection signal="player_touched" from="RestartPad" to="Player/WingAbility" method="refill"]
 [connection signal="player_touched" from="RestartPad" to="PlatformSpawner" method="reset"]
 [connection signal="player_touched" from="RestartPad" to="Hud" method="reset"]
+[connection signal="milestone_reached" from="Hud" to="Camera2D" method="on_milestone"]

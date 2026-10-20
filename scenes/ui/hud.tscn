@@ -1,22 +1,57 @@
-[gd_scene load_steps=3 format=3 uid="uid://c27rrfb4v4rtb"]
+[gd_scene load_steps=5 format=3 uid="uid://c27rrfb4v4rtb"]
 
 [ext_resource type="Script" uid="uid://bfavyyth7tvaj" path="res://scripts/hud.gd" id="1_qpvh6"]
 [ext_resource type="FontFile" uid="uid://b4yebdpj8ello" path="res://fonts/PixelifySans-Regular.ttf" id="2_fls4u"]
+[ext_resource type="Script" path="res://scripts/milestone_toast.gd" id="3_toast"]
+[ext_resource type="Texture2D" uid="uid://bipm6xk1igdjr" path="res://sprites/wing.png" id="4_wing"]
 
 [node name="Hud" type="CanvasLayer"]
+layer = 2
 script = ExtResource("1_qpvh6")
 
 [node name="HeightLabel" type="Label" parent="."]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -40.0
+offset_left = -56.0
+offset_right = -16.0
 offset_bottom = 23.0
 grow_horizontal = 0
 theme_override_fonts/font = ExtResource("2_fls4u")
 theme_override_font_sizes/font_size = 60
 text = "0m"
 horizontal_alignment = 2
+
+[node name="GoalIcon" type="TextureRect" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_top = 74.0
+offset_right = -10.0
+offset_bottom = 104.0
+grow_horizontal = 0
+texture = ExtResource("4_wing")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MilestoneSegments" type="VBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -34.0
+offset_top = 112.0
+offset_right = -16.0
+offset_bottom = 332.0
+grow_horizontal = 0
+theme_override_constants/separation = 4
+
+[node name="MilestoneToast" type="PanelContainer" parent="."]
+offset_left = -1000.0
+offset_top = -1000.0
+offset_right = -1000.0
+offset_bottom = -1000.0
+script = ExtResource("3_toast")
 
 [node name="WingSlots" type="HBoxContainer" parent="."]
 offset_left = 16.0

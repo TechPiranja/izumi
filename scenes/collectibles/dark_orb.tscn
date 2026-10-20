@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/collectibles/wing_orb.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/dark_orb.gd" id="2_script"]
+
+[node name="DarkOrb" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+
+[node name="AnimatedSprite2D" parent="." index="0"]
+modulate = Color(0.25, 0.08, 0.4, 1)
