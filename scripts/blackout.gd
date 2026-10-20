@@ -95,14 +95,18 @@ func charge_progress() -> float:
 
 
 ## Starts the black-and-outlines effect around `origin` (a world position).
-func start_vision(origin: Vector2) -> void:
+## `sound_delay` holds back the ping sound, e.g. so it doesn't play together with the pickup sound.
+func start_vision(origin: Vector2, sound_delay := 0.0) -> void:
 	var radius := _vision_radius(origin)
 	var duration := radius / VISION_SPEED + VISION_START_DELAY + VISION_HOLD
 	vision_active = true
 	vision_id += 1
 
 	vision_started.emit(origin, radius, duration)
-	Sfx.play("ping", 0.0, 0.0)
+	if sound_delay > 0.0:
+		get_tree().create_timer(sound_delay).timeout.connect(Sfx.play.bind("ping", 0.0, 0.0))
+	else:
+		Sfx.play("ping", 0.0, 0.0)
 	_animate_overlay(duration)
 
 	# The ring and the end of the vision are timed with the id, so an early end cancels them.

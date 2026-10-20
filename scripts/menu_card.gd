@@ -6,6 +6,8 @@ const FONT := preload("res://fonts/PixelifySans-Bold.ttf")
 const ORB_TEXTURE := preload("res://sprites/wing_orb.png")
 ## Everything inside the card is drawn relative to this, so the card can be made bigger or smaller.
 const UI_SCALE := 0.6
+## Size of one art pixel on screen, for the signs that are drawn by code.
+const PIXEL := 4.0
 const CARD_SIZE := Vector2(200.0, 220.0) * UI_SCALE
 const COLOR_CREAM := Color("fff4dc")
 const COLOR_GOLD := Color("ffd35e")
@@ -51,6 +53,29 @@ func _draw() -> void:
 			_draw_dark_orb(center)
 
 
+func _circle_points(center: Vector2, radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var steps := 160
+	for i in steps:
+		points.append(center + Vector2.from_angle(TAU * float(i) / steps) * radius)
+	return points
+
+
+## Draws a line along `points` with big square pixels instead of a smooth stroke:
+## every point is snapped to a grid, and each grid cell is filled once.
+func _draw_pixel_path(points: PackedVector2Array, color: Color, thickness_cells: int) -> void:
+	var cells := {}
+	var shift := Vector2i(thickness_cells / 2, thickness_cells / 2)
+	for point in points:
+		var cell := Vector2i(floori(point.x / PIXEL), floori(point.y / PIXEL))
+		for dx in thickness_cells:
+			for dy in thickness_cells:
+				cells[cell + Vector2i(dx, dy) - shift] = true
+
+	for cell: Vector2i in cells:
+		draw_rect(Rect2(Vector2(cell) * PIXEL, Vector2(PIXEL, PIXEL)), color)
+
+
 func _draw_centered_text(text: String, center: Vector2, font_size: int, color: Color) -> void:
 	var text_size := FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 	var ascent := FONT.get_ascent(font_size)
@@ -58,20 +83,20 @@ func _draw_centered_text(text: String, center: Vector2, font_size: int, color: C
 	draw_string(FONT, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 
-## The lemniscate: a sideways 8, the sign for infinity.
+## The lemniscate: a sideways 8, the sign for infinity. Drawn in pixels like the rest of the art.
 func _draw_infinity(center: Vector2, color: Color) -> void:
 	var points := PackedVector2Array()
-	var steps := 64
-	for i in steps + 1:
+	var steps := 200
+	for i in steps:
 		var t := TAU * float(i) / steps
 		var denominator := 1.0 + sin(t) * sin(t)
 		points.append(center + Vector2(cos(t), sin(t) * cos(t)) * 70.0 * UI_SCALE / denominator * Vector2(1.0, 1.4))
-	draw_polyline(points, color, 12.0 * UI_SCALE, true)
+	_draw_pixel_path(points, color, 2)
 
 
 func _draw_dark_orb(center: Vector2) -> void:
-	# Two soft rings around the black orb, like a sound wave.
-	draw_arc(center, 78.0 * UI_SCALE, 0.0, TAU, 48, Color(COLOR_DARK, 0.35), 4.0)
-	draw_arc(center, 58.0 * UI_SCALE, 0.0, TAU, 48, Color(COLOR_DARK, 0.6), 4.0)
+	# Two pixel rings around the black orb, like a sound wave.
+	_draw_pixel_path(_circle_points(center, 78.0 * UI_SCALE), Color(COLOR_DARK, 0.4), 1)
+	_draw_pixel_path(_circle_points(center, 58.0 * UI_SCALE), Color(COLOR_DARK, 0.7), 1)
 	var orb_size := Vector2(84.0, 84.0) * UI_SCALE
 	draw_texture_rect(orb_texture, Rect2(center - orb_size * 0.5, orb_size), false, Color(0.4, 0.15, 0.65))

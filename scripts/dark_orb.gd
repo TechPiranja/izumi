@@ -4,6 +4,7 @@ class_name DarkOrb
 extends WingOrb
 
 const DARK_COLOR := Color(0.35, 0.15, 0.6)
+const PING_SOUND_DELAY := 0.6
 
 
 ## The first orb's vision wave grows until it reaches the next black orb, so they need to be found.
@@ -18,7 +19,8 @@ func _on_body_entered(body: Node2D) -> void:
 	if not Blackout.is_blind:
 		# Dark at once; the vision shows the way for a moment.
 		Blackout.set_blind(true, true)
-		Blackout.start_vision(global_position)
+		# The ping sound comes after the "dark" sound of the pickup, not on top of it.
+		Blackout.start_vision(global_position, PING_SOUND_DELAY)
 		Sfx.play("dark", 0.0, 0.0)
 		Fx.burst(self, global_position, DARK_COLOR, 22, 220.0, 5.0)
 		_shake_camera(6.0)

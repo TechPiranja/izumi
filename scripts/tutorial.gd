@@ -12,6 +12,8 @@ const DARK_ORB_SCENE := preload("res://scenes/collectibles/dark_orb.tscn")
 ## Where an orb floats above its platform (same as in the spawner).
 const ORB_OFFSET := Vector2(0.0, -50.0)
 const DONE_COLOR := Color("ffd35e")
+## Seconds between doing something and the success chime of the card.
+const SUCCESS_DELAY := 0.45
 
 ## What each step shows, left to right. "key:A" is a key, the others are symbols or pictures.
 const STEPS := [
@@ -101,12 +103,15 @@ func _step_done() -> bool:
 
 func _next_step() -> void:
 	advancing = true
+	# Wait a moment, so the sound of what the player just did (a jump, a pickup) is not
+	# played at the same time as the success chime.
+	await get_tree().create_timer(SUCCESS_DELAY).timeout
 	Sfx.play("orb", -4.0)
 	# The card flashes gold, then shows the next step.
 	var style: StyleBoxFlat = card.get_theme_stylebox("panel")
 	style.border_color = DONE_COLOR
 	_pop_card()
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(0.5).timeout
 	style.border_color = Color("fff4dc")
 	_enter_step(step + 1)
 	advancing = false
