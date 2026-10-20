@@ -3,10 +3,14 @@ class_name KeyCap
 extends PanelContainer
 
 const FONT := preload("res://fonts/PixelifySans-Bold.ttf")
+const DONE_COLOR := Color("ffd35e")
+
+var style: StyleBoxFlat
+var press_tween: Tween
 
 
 func _init(key_text := "") -> void:
-	var style := StyleBoxFlat.new()
+	style = StyleBoxFlat.new()
 	style.bg_color = Color("fff4dc")
 	style.border_color = Color("c2a06a")
 	style.set_border_width_all(3)
@@ -34,7 +38,17 @@ func _init(key_text := "") -> void:
 
 func _ready() -> void:
 	# Press and release, over and over.
-	var tween := create_tween().set_loops()
-	tween.tween_property(self, "scale", Vector2(0.88, 0.88), 0.18).set_trans(Tween.TRANS_SINE)
-	tween.tween_property(self, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_SINE)
-	tween.tween_interval(0.7)
+	press_tween = create_tween().set_loops()
+	press_tween.tween_property(self, "scale", Vector2(0.88, 0.88), 0.18).set_trans(Tween.TRANS_SINE)
+	press_tween.tween_property(self, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_SINE)
+	press_tween.tween_interval(0.7)
+
+
+## The player pressed this key: it turns gold and stops moving.
+func mark_done() -> void:
+	press_tween.kill()
+	style.bg_color = DONE_COLOR
+	style.border_color = Color("c2603a")
+	scale = Vector2(1.15, 1.15)
+	create_tween().tween_property(self, "scale", Vector2.ONE, 0.2) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

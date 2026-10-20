@@ -54,7 +54,9 @@ var start_y := 0.0
 var charges_at_entry := 0
 var vision_count := 0
 var vision_count_at_entry := 0
-var was_blind := false
+## Step 0: which of the keys A and D were pressed, and their pictures on the card.
+var pressed_keys := {}
+var key_caps := {}
 
 
 func _ready() -> void:
@@ -68,8 +70,27 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if finished or advancing:
 		return
+	if step == 0:
+		_watch_walk_keys()
 	if _step_done():
 		_next_step()
+
+
+## Marks the picture of A and D as soon as the player presses the key (the arrow keys count too).
+func _watch_walk_keys() -> void:
+	if Input.is_action_just_pressed("move_left"):
+		_mark_key("A")
+	if Input.is_action_just_pressed("move_right"):
+		_mark_key("D")
+
+
+func _mark_key(key_text: String) -> void:
+	if pressed_keys.has(key_text):
+		return
+	pressed_keys[key_text] = true
+	if key_caps.has(key_text):
+		key_caps[key_text].mark_done()
+	Sfx.play("tick", -4.0)
 
 
 func _meters() -> float:
@@ -80,7 +101,8 @@ func _meters() -> float:
 func _step_done() -> bool:
 	match step:
 		0:
-			return absf(player.global_position.x - start_x) > 250.0
+			# One press of each key is enough.
+			return pressed_keys.size() >= 2
 		1:
 			# Moving upwards fast means a jump.
 			return player.velocity.y < Player.JUMP_VELOCITY * 0.8
@@ -196,6 +218,7 @@ func _rebuild_card() -> void:
 		child.queue_free()
 	for child in dots.get_children():
 		child.queue_free()
+	key_caps.clear()
 
 	for token in STEPS[step]:
 		row.add_child(_make_token(token))
@@ -224,7 +247,10 @@ func _pop_card() -> void:
 
 func _make_token(token: String) -> Control:
 	if token.begins_with("key:"):
-		return KeyCap.new(token.trim_prefix("key:"))
+		var key_text := token.trim_prefix("key:")
+		var cap := KeyCap.new(key_text)
+		key_caps[key_text] = cap
+		return cap
 	if token.begins_with("text:"):
 		return _make_label(token.trim_prefix("text:"))
 
