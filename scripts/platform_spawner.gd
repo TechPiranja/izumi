@@ -26,11 +26,17 @@ const MAX_PLACEMENT_ATTEMPTS := 20
 const WING_ORB_SCENE := preload("res://scenes/collectibles/wing_orb.tscn")
 const DARK_ORB_SCENE := preload("res://scenes/collectibles/dark_orb.tscn")
 ## Chance that a platform gets the black orb that hides all platforms.
-const DARK_ORB_CHANCE := 0.06
+const DARK_ORB_CHANCE := 0.1
 ## No black orbs in the first stretch of a run (px above the start).
 const DARK_ORB_MIN_HEIGHT := 2000.0
+## At the latest after this much climbing (px, 50 m) the next black orb is placed.
+const DARK_ORB_MAX_GAP := 5000.0
 ## The black orb that brings the platforms back sits this many platforms higher.
-const CURE_DISTANCE := 4
+## It starts at the minimum and grows with the height up to the maximum.
+const MIN_CURE_DISTANCE := 4
+const MAX_CURE_DISTANCE := 10
+## After the orb that ends the darkness, this many platforms get no black orb at all.
+const DARK_ORB_PAUSE := 10
 ## Where an orb floats, relative to the platform it belongs to: centered, just above its top edge.
 ## Keep it low: the next platform can be only MIN_RISE above and would cover a higher orb.
 const ORB_OFFSET := Vector2(0.0, -50.0)
@@ -55,6 +61,12 @@ var last_has_dark_orb := false
 var cure_countdown := 0
 ## The curing orb that was placed last, to notice when the player has left it behind.
 var cure_orb: DarkOrb
+## How many platforms were built in this run (the next one gets this number).
+var platform_counter := 1
+## How high (px above the start) the last hiding black orb was placed.
+var last_dark_climbed := 0.0
+## Counts down the platforms without any black orb after the end orb. 0 means black orbs may spawn.
+var dark_pause := 0
 
 
 func _ready() -> void:
@@ -75,11 +87,18 @@ func reset() -> void:
 	last_has_dark_orb = false
 	cure_countdown = 0
 	cure_orb = null
-	# A new run always starts with visible platforms.
-	Blackout.set_blind(false, true)
+	platform_counter = 1
+	last_dark_climbed = 0.0
+	dark_pause = 0
+	# A new run always starts with visible platforms and counts platforms from zero.
+	Blackout.reset_run()
 
 	for i in INITIAL_PLATFORMS:
 		_spawn_platform()
+
+	# Dark mode starts like a black orb: a short look at what is around.
+	if GameMode.is_dark_mode():
+		Blackout.start_vision(player.global_position)
 
 
 func _process(_delta: float) -> void:
@@ -94,7 +113,9 @@ func _process(_delta: float) -> void:
 func _spawn_platform() -> void:
 	var platform: Platform = _pick_scene().instantiate()
 	var difficulty := _difficulty()
-	var big_gap := randf() < difficulty * MAX_BIG_GAP_CHANCE and not last_has_dark_orb
+	# The tutorial hands out its orbs itself; big gaps would need wings it may not have given yet.
+	var tutorial := GameMode.is_tutorial()
+	var big_gap := randf() < difficulty * MAX_BIG_GAP_CHANCE and not last_has_dark_orb and not tutorial
 	var pos := _find_position(platform.get_extra_width(), big_gap)
 
 	last_x = pos.x
@@ -102,6 +123,8 @@ func _spawn_platform() -> void:
 
 	platform.spawn_center = pos
 	platform.position = to_local(pos)
+	platform.index = platform_counter
+	platform_counter += 1
 
 	# A big gap needs a wing, so the platform below it always carries an orb.
 	# Otherwise the player could stand there with no wings and be stuck.
@@ -109,22 +132,33 @@ func _spawn_platform() -> void:
 		_add_orb(last_platform)
 		last_has_orb = true
 
-	var has_orb := randf() < lerpf(orb_chance, MAX_ORB_CHANCE, difficulty)
+	var has_orb := not tutorial and randf() < lerpf(orb_chance, MAX_ORB_CHANCE, difficulty)
 	var has_dark_orb := false
+	var was_paused := dark_pause > 0
+	# Dark mode is dark all the time already, so it has no black orbs.
+	var dark_orbs_allowed := not tutorial and not GameMode.is_dark_mode()
 
-	if cure_countdown > 0:
+	if not dark_orbs_allowed:
+		pass
+	elif cure_countdown > 0:
 		cure_countdown -= 1
 		if cure_countdown == 0:
 			cure_orb = _add_dark_orb(platform)
 			has_dark_orb = true
+			dark_pause = DARK_ORB_PAUSE
 	elif _needs_new_cure():
 		# The player skipped the second orb while it is dark: give them another one.
 		cure_orb = _add_dark_orb(platform)
 		has_dark_orb = true
-	elif not has_orb and not Blackout.is_blind and _climbed() > DARK_ORB_MIN_HEIGHT and randf() < DARK_ORB_CHANCE:
+		dark_pause = DARK_ORB_PAUSE
+	elif not Blackout.is_blind and not was_paused and _climbed() > DARK_ORB_MIN_HEIGHT and _dark_orb_due(has_orb):
 		_add_dark_orb(platform)
-		cure_countdown = CURE_DISTANCE
+		cure_countdown = _cure_distance()
+		last_dark_climbed = _climbed()
 		has_dark_orb = true
+
+	if was_paused:
+		dark_pause -= 1
 
 	# One orb per platform.
 	if has_dark_orb:
@@ -137,6 +171,19 @@ func _spawn_platform() -> void:
 	last_has_dark_orb = has_dark_orb
 
 	add_child(platform)
+
+
+## True if this platform should get the black orb: always after 50 m without one,
+## otherwise by chance (and only if the platform has no wing orb).
+func _dark_orb_due(platform_has_wing_orb: bool) -> bool:
+	if _climbed() - last_dark_climbed >= DARK_ORB_MAX_GAP:
+		return true
+	return not platform_has_wing_orb and randf() < DARK_ORB_CHANCE
+
+
+## How many platforms the darkness lasts: 4 at the start, more the higher the player is.
+func _cure_distance() -> int:
+	return MIN_CURE_DISTANCE + roundi(_difficulty() * (MAX_CURE_DISTANCE - MIN_CURE_DISTANCE))
 
 
 func _add_dark_orb(platform: Platform) -> DarkOrb:

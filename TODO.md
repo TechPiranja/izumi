@@ -33,6 +33,12 @@ Ideen aus den Kommentaren (YouTube, TikTok, Instagram, Stand 18.10.2026) plus ei
 - [x] **Vision:** beim ersten schwarzen Orb wird alles schwarz mit Umrissen, eine Welle zeigt die Plattformen bis zum nächsten Orb; Leertaste wiederholt es 1x
 - [ ] Später: als eigener Modus (Epic) statt zufällig im normalen Spiel, Chance und Startabstand einstellbar
 
+## Menü und Modi
+
+- [x] Menü mit Tutorial, Infinity-Modus und Dark Mode
+- [x] Tutorial nur mit Bildern (Tasten und Symbole)
+- [x] Dark Mode: immer dunkel, Space nur alle 5 Plattformen
+
 ## Später
 
 - [ ] **Startmenü mit Shop:** Skins oder Welten anpassen, bezahlt mit gesammelten Flügeln (@luisx1390)

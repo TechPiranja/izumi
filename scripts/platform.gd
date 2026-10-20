@@ -11,6 +11,8 @@ const HIDE_TIME := 0.4
 ## Position where the spawner placed this platform (moving platforms change
 ## global_position, this value stays the same).
 var spawn_center: Vector2
+## Spawn number: the higher the platform, the bigger the number. Used to count climbed platforms.
+var index := 0
 
 var blink_tween: Tween
 

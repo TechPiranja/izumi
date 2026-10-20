@@ -5,11 +5,8 @@ signal milestone_reached(meters: int)
 
 const WING_SLOT_SCENE := preload("res://scenes/ui/wing_slot.tscn")
 const NUMBER_FONT := preload("res://fonts/PixelifySans-Bold.ttf")
-const ORB_TEXTURE := preload("res://sprites/wing_orb.png")
-## Which picture of the orb sprite sheet the "dark" icon shows (each is 15x15 px).
-const BLIND_ICON_FRAME := Rect2(30.0, 0.0, 15.0, 15.0)
-const BLIND_ICON_POSITION := Vector2(236.0, 20.0)
-const BLIND_ICON_COLOR := Color(0.35, 0.15, 0.6)
+## Where the ping pie sits, right of the wing slots.
+const PING_PIE_POSITION := Vector2(236.0, 16.0)
 ## Falling this far below the start (in meters) ends the run.
 const FALL_LIMIT_METERS := 2.0
 const SEGMENT_SIZE := Vector2(18.0, 18.0)
@@ -45,8 +42,8 @@ var filled_count := 0
 var holding_full_row := false
 var label_tween: Tween
 var game_over_started := false
-## Shows a black orb next to the wings while the platforms are hidden.
-var blind_icon: TextureRect
+## Shows how many pings are left, next to the wings, while the platforms are hidden.
+var ping_pie: PingPie
 var empty_style: StyleBoxFlat
 var filled_style: StyleBoxFlat
 
@@ -62,14 +59,10 @@ func _ready() -> void:
 	_on_wing_charges_changed(wings.charges)
 	_build_segments()
 	goal_icon.modulate.a = GOAL_MIN_ALPHA
-	_build_blind_icon()
+	_build_ping_pie()
 
 
 func _process(_delta: float) -> void:
-	# The dark orb is bright while there is still a ping left and dim once it is used up.
-	if blind_icon.visible:
-		blind_icon.modulate.a = 1.0 if Blackout.ping_charges > 0 else 0.35
-
 	# y grows downwards in Godot, so height is start_y minus the current y.
 	var height := (start_y - player.global_position.y) / pixels_per_meter
 	best_height = maxf(best_height, height)
@@ -155,29 +148,19 @@ func _punch_label(strength: float) -> void:
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-func _build_blind_icon() -> void:
-	var texture := AtlasTexture.new()
-	texture.atlas = ORB_TEXTURE
-	texture.region = BLIND_ICON_FRAME
-
-	blind_icon = TextureRect.new()
-	blind_icon.texture = texture
-	blind_icon.custom_minimum_size = Vector2(48.0, 48.0)
-	blind_icon.size = Vector2(48.0, 48.0)
-	blind_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	blind_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	blind_icon.modulate = BLIND_ICON_COLOR
-	blind_icon.position = BLIND_ICON_POSITION
-	blind_icon.visible = Blackout.is_blind
-	add_child(blind_icon)
+func _build_ping_pie() -> void:
+	ping_pie = PingPie.new()
+	ping_pie.position = PING_PIE_POSITION
+	ping_pie.visible = Blackout.is_blind
+	add_child(ping_pie)
 
 	Blackout.changed.connect(_on_blackout_changed)
 
 
 func _on_blackout_changed(blind: bool, _instant: bool) -> void:
-	blind_icon.visible = blind
+	ping_pie.visible = blind
 	if blind:
-		_pop_control(blind_icon, 1.8)
+		_pop_control(ping_pie, 1.6)
 
 
 ## A column of chunky square blocks, one for every `tick_meters` of the way to the next milestone.

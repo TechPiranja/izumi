@@ -11,14 +11,15 @@ config_version=5
 [application]
 
 config/name="izumi"
-run/main_scene="uid://kl8ctxyk8co6"
+run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Sfx="*res://scripts/sfx.gd"
-Blackout="*res://scripts/blackout.gd"[display]
+Blackout="*res://scripts/blackout.gd"
+GameMode="*res://scripts/game_mode.gd"[display]
 
 window/stretch/mode="canvas_items"
 

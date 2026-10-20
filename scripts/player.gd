@@ -65,10 +65,21 @@ func _physics_process(delta: float) -> void:
 	last_fall_speed = velocity.y
 	move_and_slide()
 	_update_animation(direction)
+	_report_platform()
 
 	if is_on_floor() and not was_on_floor and last_fall_speed > HARD_LANDING_SPEED:
 		_on_landed()
 	was_on_floor = is_on_floor()
+
+
+## Tells the Blackout autoload which platform the player stands on, to count climbed platforms.
+func _report_platform() -> void:
+	if not is_on_floor():
+		return
+	for i in get_slide_collision_count():
+		var platform := get_slide_collision(i).get_collider() as Platform
+		if platform:
+			Blackout.platform_reached(platform.index)
 
 
 func _update_animation(direction: float) -> void:

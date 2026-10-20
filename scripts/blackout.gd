@@ -18,6 +18,11 @@ const VISION_SPEED := 700.0
 const VISION_START_DELAY := 0.3
 ## How long everything stays visible after the wave has reached its end.
 const VISION_HOLD := 1.0
+## While it is dark, the player earns one more ping for every this many platforms climbed.
+const PLATFORMS_PER_CHARGE := 5
+const MAX_PING_CHARGES := 4
+## In dark mode only one ping can be saved up.
+const DARK_MODE_MAX_PING_CHARGES := 1
 const MIN_RADIUS := 500.0
 const MAX_RADIUS := 1800.0
 ## Used if there is no other black orb to reach.
@@ -28,6 +33,12 @@ const TARGET_MARGIN := 150.0
 var is_blind := false
 ## How many more visions the ping button can trigger. Refilled to 1 when it gets dark.
 var ping_charges := 0
+## How many pings can be saved up at most (it depends on the game mode).
+var max_ping_charges := MAX_PING_CHARGES
+## Platforms climbed since the last earned ping charge.
+var platforms_since_charge := 0
+## The highest platform (by spawn number) the player has stood on in this run.
+var highest_platform_index := 0
 var vision_active := false
 var vision_id := 0
 var overlay_material: ShaderMaterial
@@ -44,9 +55,43 @@ func set_blind(value: bool, instant := false) -> void:
 
 	is_blind = value
 	ping_charges = 1 if value else 0
+	platforms_since_charge = 0
 	if not value:
 		_end_vision()
 	changed.emit(value, instant)
+
+
+## Called at the start of a run: bright again, and platform counting starts from zero.
+func reset_run() -> void:
+	highest_platform_index = 0
+	max_ping_charges = DARK_MODE_MAX_PING_CHARGES if GameMode.is_dark_mode() else MAX_PING_CHARGES
+	# In dark mode the platforms are hidden from the very start.
+	set_blind(GameMode.is_dark_mode(), true)
+
+
+## The player stands on a platform. Every new platform higher up counts towards the next ping charge.
+func platform_reached(index: int) -> void:
+	if index <= highest_platform_index:
+		return
+
+	var climbed := index - highest_platform_index
+	highest_platform_index = index
+	if not is_blind:
+		return
+
+	platforms_since_charge += climbed
+	while platforms_since_charge >= PLATFORMS_PER_CHARGE:
+		platforms_since_charge -= PLATFORMS_PER_CHARGE
+		ping_charges = mini(ping_charges + 1, max_ping_charges)
+	if ping_charges >= max_ping_charges:
+		platforms_since_charge = 0
+
+
+## 0 to 1: how far the player is towards the next ping charge.
+func charge_progress() -> float:
+	if ping_charges >= max_ping_charges:
+		return 0.0
+	return float(platforms_since_charge) / PLATFORMS_PER_CHARGE
 
 
 ## Starts the black-and-outlines effect around `origin` (a world position).

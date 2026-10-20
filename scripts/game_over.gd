@@ -1,9 +1,8 @@
-## The game over screen: how high the run got, and a round arrow to try again. No words.
+## The game over screen: how high the run got (gold for a new best), and a round arrow to try again.
 class_name GameOver
 extends CanvasLayer
 
 const FONT := preload("res://fonts/PixelifySans-Bold.ttf")
-const WING_TEXTURE := preload("res://sprites/wing.png")
 ## The screen ignores input for a moment, so a key that was already pressed doesn't skip it.
 const INPUT_DELAY := 0.9
 const NORMAL_COLOR := Color("fff4dc")
@@ -42,15 +41,6 @@ func show_result(meters: int) -> void:
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(column)
 
-	if is_record:
-		# A wing above the number marks a new best height.
-		var wing := TextureRect.new()
-		wing.texture = WING_TEXTURE
-		wing.custom_minimum_size = Vector2(72.0, 72.0)
-		wing.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		wing.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		column.add_child(wing)
-
 	number = Label.new()
 	number.text = "%d m" % meters
 	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -81,7 +71,8 @@ func show_result(meters: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not can_restart:
+	# Esc leads back to the menu (handled by GameMode), everything else tries again.
+	if not can_restart or event.is_action_pressed("ui_cancel"):
 		return
 
 	var pressed := false

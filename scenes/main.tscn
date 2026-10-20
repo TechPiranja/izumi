@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://kl8ctxyk8co6"]
+[gd_scene load_steps=17 format=3 uid="uid://kl8ctxyk8co6"]
 
 [ext_resource type="PackedScene" uid="uid://d2sgf8r7s8hgu" path="res://scenes/player.tscn" id="1_0wfyh"]
 [ext_resource type="PackedScene" uid="uid://bl8ac33qkrwl7" path="res://scenes/platforms/platform.tscn" id="2_sugp2"]
@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://boeb0o4eak2ou" path="res://scenes/environment/ground.tscn" id="8_tipki"]
 [ext_resource type="PackedScene" path="res://scenes/environment/restart_pad.tscn" id="9_85g3d"]
 [ext_resource type="Script" path="res://scripts/sky.gd" id="10_sky"]
+[ext_resource type="Script" path="res://scripts/main.gd" id="11_main"]
 
 [sub_resource type="Resource" id="Resource_a8y0u"]
 script = ExtResource("5_ya4ey")
@@ -32,6 +33,7 @@ weight = 2.0
 metadata/_custom_type_script = "uid://b3amw2r2dqapo"
 
 [node name="Node2D" type="Node2D"]
+script = ExtResource("11_main")
 
 [node name="Player" parent="." instance=ExtResource("1_0wfyh")]
 z_index = 2
@@ -47,9 +49,9 @@ player = NodePath("../Player")
 
 [node name="PlatformSpawner" type="Node2D" parent="." node_paths=PackedStringArray("player", "start_platform")]
 script = ExtResource("4_jyhfs")
+platform_types = Array[ExtResource("5_ya4ey")]([SubResource("Resource_a8y0u"), SubResource("Resource_jkv2x"), SubResource("Resource_jbj1t")])
 player = NodePath("../Player")
 start_platform = NodePath("../Platform")
-platform_types = Array[ExtResource("5_ya4ey")]([SubResource("Resource_a8y0u"), SubResource("Resource_jkv2x"), SubResource("Resource_jbj1t")])
 
 [node name="Sky" type="CanvasLayer" parent="." node_paths=PackedStringArray("player")]
 script = ExtResource("10_sky")
