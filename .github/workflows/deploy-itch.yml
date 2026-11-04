@@ -45,11 +45,24 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           ITCH_USER: ${{ vars.ITCH_USER }}
           ITCH_GAME: ${{ vars.ITCH_GAME }}
+        shell: bash
         run: |
+          # Say clearly which setting is missing (secrets and variables are per repository).
+          missing=0
+          for name in BUTLER_API_KEY ITCH_USER ITCH_GAME; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is empty. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ] || exit 1
+
           if ! command -v butler > /dev/null; then
             curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
             unzip -o butler.zip -d butler-bin
             chmod +x butler-bin/butler
             export PATH="$PWD/butler-bin:$PATH"
           fi
+          butler version
+          ls -la build/web
           butler push build/web "$ITCH_USER/$ITCH_GAME:html5"
