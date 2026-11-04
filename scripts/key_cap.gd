@@ -3,10 +3,26 @@ class_name KeyCap
 extends PanelContainer
 
 const FONT := preload("res://fonts/PixelifySans-Bold.ttf")
+## On touch devices the tutorial shows the symbols of the on-screen buttons instead of letters.
+const TOUCH_GLYPHS := {"A": "left", "D": "right", "W": "up", "SPACE": "ping", "ESC": "menu"}
 const DONE_COLOR := Color("ffd35e")
 
 var style: StyleBoxFlat
 var press_tween: Tween
+
+
+## One of the touch button symbols, drawn with the same shapes as the real buttons.
+class TouchGlyph:
+	extends Control
+
+	var glyph: String
+
+	func _init(shape: String) -> void:
+		glyph = shape
+		custom_minimum_size = Vector2(40.0, 40.0)
+
+	func _draw() -> void:
+		TouchControls.draw_glyph(self, glyph, size * 0.5, minf(size.x, size.y) * 0.45)
 
 
 func _init(key_text := "") -> void:
@@ -23,13 +39,16 @@ func _init(key_text := "") -> void:
 	style.content_margin_bottom = 4.0
 	add_theme_stylebox_override("panel", style)
 
-	var label := Label.new()
-	label.text = key_text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", FONT)
-	label.add_theme_font_size_override("font_size", 30)
-	label.add_theme_color_override("font_color", Color("6b4a2e"))
-	add_child(label)
+	if TouchControls.wanted() and TOUCH_GLYPHS.has(key_text):
+		add_child(TouchGlyph.new(TOUCH_GLYPHS[key_text]))
+	else:
+		var label := Label.new()
+		label.text = key_text
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_override("font", FONT)
+		label.add_theme_font_size_override("font_size", 30)
+		label.add_theme_color_override("font_color", Color("6b4a2e"))
+		add_child(label)
 
 	custom_minimum_size = Vector2(64.0, 64.0)
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER

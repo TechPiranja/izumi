@@ -9,6 +9,14 @@ const SKY_COLOR := Color(0.326, 0.553, 0.587)
 const CLOUD_COUNT := 9
 const CARD_GAP := 22.0
 const SELECTED_SCALE := 1.12
+## Where the title label ends (14 px from the top, 140 px tall).
+const TITLE_BOTTOM := 154.0
+const CHARACTER_SCALE := 2.4
+const CHARACTER_MAX_SCALE := 5.0
+## The sprite frames are 100 px square.
+const CHARACTER_FRAME := 100.0
+## How much of the free height between title and cards she may fill.
+const CHARACTER_FILL := 0.75
 
 const KINDS := ["tutorial", "infinity", "dark"]
 
@@ -18,6 +26,10 @@ var cards: Array[MenuCard] = []
 var selected := 1
 var clouds: Node2D
 var starting := false
+var title: Label
+var character: AnimatedSprite2D
+## The screen size the menu was last laid out for.
+var laid_out_size := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -27,6 +39,36 @@ func _ready() -> void:
 	_build_character()
 	_build_cards()
 	_select(selected, false)
+
+	laid_out_size = get_viewport_rect().size
+	get_viewport().size_changed.connect(_layout)
+
+
+## Puts everything back in the middle when the window is resized.
+func _layout() -> void:
+	var screen := get_viewport_rect().size
+	if laid_out_size.x > 0.0:
+		# The clouds spread over the new width instead of staying in the old area.
+		for cloud in clouds.get_children():
+			cloud.position.x *= screen.x / laid_out_size.x
+			cloud.position.y *= screen.y / laid_out_size.y
+	laid_out_size = screen
+
+	title.position.x = screen.x * 0.5 - 250.0
+	_place_cards()
+	_place_character()
+
+
+## izumi sits in the middle, between the bottom of the title and the top of the cards.
+func _place_character() -> void:
+	var screen := get_viewport_rect().size
+	var cards_top := screen.y - MenuCard.CARD_SIZE.y - 40.0
+	character.position = Vector2(screen.x * 0.5, (TITLE_BOTTOM + cards_top) * 0.5)
+
+	# With lots of room in between she grows, but never gets smaller than the normal size.
+	var free_height := cards_top - TITLE_BOTTOM
+	var grown := free_height * CHARACTER_FILL / CHARACTER_FRAME
+	character.scale = Vector2.ONE * clampf(grown, CHARACTER_SCALE, CHARACTER_MAX_SCALE)
 
 
 func _process(_delta: float) -> void:
@@ -63,7 +105,7 @@ func _build_clouds() -> void:
 
 
 func _build_title() -> void:
-	var title := Label.new()
+	title = Label.new()
 	title.text = "izumi"
 	title.custom_minimum_size = Vector2(500.0, 0.0)
 	title.size = Vector2(500.0, 140.0)
@@ -94,25 +136,32 @@ func _build_character() -> void:
 
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = frames
-	sprite.scale = Vector2(2.4, 2.4)
-	sprite.position = Vector2(get_viewport_rect().size.x * 0.5, 300.0)
+	sprite.scale = Vector2.ONE * CHARACTER_SCALE
 	add_child(sprite)
 	sprite.play("default")
+	character = sprite
+	_place_character()
 
 
 func _build_cards() -> void:
+	for i in KINDS.size():
+		var card := MenuCard.new(KINDS[i])
+		card.mouse_entered.connect(_select.bind(i))
+		card.gui_input.connect(_on_card_input.bind(i))
+		add_child(card)
+		cards.append(card)
+	_place_cards()
+
+
+## The cards sit in a row, centered at the bottom.
+func _place_cards() -> void:
 	var screen := get_viewport_rect().size
 	var total_width := MenuCard.CARD_SIZE.x * KINDS.size() + CARD_GAP * (KINDS.size() - 1)
 	var left := (screen.x - total_width) * 0.5
 	var top := screen.y - MenuCard.CARD_SIZE.y - 40.0
 
-	for i in KINDS.size():
-		var card := MenuCard.new(KINDS[i])
-		card.position = Vector2(left + i * (MenuCard.CARD_SIZE.x + CARD_GAP), top)
-		card.mouse_entered.connect(_select.bind(i))
-		card.gui_input.connect(_on_card_input.bind(i))
-		add_child(card)
-		cards.append(card)
+	for i in cards.size():
+		cards[i].position = Vector2(left + i * (MenuCard.CARD_SIZE.x + CARD_GAP), top)
 
 
 func _on_card_input(event: InputEvent, index: int) -> void:

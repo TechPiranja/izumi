@@ -7,6 +7,8 @@ const WING_SLOT_SCENE := preload("res://scenes/ui/wing_slot.tscn")
 const NUMBER_FONT := preload("res://fonts/PixelifySans-Bold.ttf")
 ## Where the ping pie sits, right of the wing slots.
 const PING_PIE_POSITION := Vector2(236.0, 16.0)
+## The wing slots are bigger on touch devices, so they stay readable on a small screen.
+const TOUCH_SLOT_SCALE := 1.4
 ## Falling this far below the start (in meters) ends the run.
 const FALL_LIMIT_METERS := 2.0
 const SEGMENT_SIZE := Vector2(18.0, 18.0)
@@ -31,6 +33,8 @@ const TICK_STEPS := [0, 2, 4, 7, 9, 12, 14, 16, 19, 21]
 @onready var toast: MilestoneToast = $MilestoneToast
 @onready var wing_slots: HBoxContainer = $WingSlots
 
+## Space the phone's notch and rounded corners take on the left (x) and right (y).
+var safe_insets := Vector2.ZERO
 ## The player's y position at the start, used as height 0.
 var start_y: float
 var best_height := 0.0
@@ -50,6 +54,7 @@ var filled_style: StyleBoxFlat
 
 func _ready() -> void:
 	start_y = player.global_position.y
+	_apply_safe_area()
 
 	# One slot per possible wing charge.
 	for i in WingAbility.MAX_CHARGES:
@@ -60,6 +65,18 @@ func _ready() -> void:
 	_build_segments()
 	goal_icon.modulate.a = GOAL_MIN_ALPHA
 	_build_ping_pie()
+
+
+## Moves the HUD away from the notch and the rounded corners of a phone. Does nothing on a computer.
+func _apply_safe_area() -> void:
+	safe_insets = TouchControls.safe_insets(get_viewport())
+	wing_slots.offset_left += safe_insets.x
+	wing_slots.offset_right += safe_insets.x
+	if TouchControls.wanted():
+		wing_slots.scale = Vector2.ONE * TOUCH_SLOT_SCALE
+	for control: Control in [label, goal_icon, segments]:
+		control.offset_left -= safe_insets.y
+		control.offset_right -= safe_insets.y
 
 
 func _process(_delta: float) -> void:
@@ -150,7 +167,10 @@ func _punch_label(strength: float) -> void:
 
 func _build_ping_pie() -> void:
 	ping_pie = PingPie.new()
-	ping_pie.position = PING_PIE_POSITION
+	ping_pie.position = PING_PIE_POSITION + Vector2(safe_insets.x, 0.0)
+	if TouchControls.wanted():
+		# Bigger wing slots are wider, so the pie moves along.
+		ping_pie.position.x += PING_PIE_POSITION.x * (TOUCH_SLOT_SCALE - 1.0)
 	ping_pie.visible = Blackout.is_blind
 	add_child(ping_pie)
 

@@ -14,6 +14,9 @@ const ORB_OFFSET := Vector2(0.0, -50.0)
 const DONE_COLOR := Color("ffd35e")
 ## Seconds between doing something and the success chime of the card.
 const SUCCESS_DELAY := 0.45
+## On touch devices the whole card is bigger, so the pictures stay readable on a small screen.
+const TOUCH_CARD_SCALE := 1.6
+const CARD_TOP := 100.0
 
 ## What each step shows, left to right. "key:A" is a key, the others are symbols or pictures.
 const STEPS := [
@@ -233,15 +236,22 @@ func _rebuild_card() -> void:
 	card.size = Vector2.ZERO
 	await get_tree().process_frame
 	var screen := get_viewport().get_visible_rect().size
-	# Below the wings and the ping pie in the top left corner.
-	card.position = Vector2((screen.x - card.size.x) * 0.5, 100.0)
+	# Below the wings and the ping pie in the top left corner. The card scales around its middle,
+	# so a bigger card is moved down by the amount it grows upwards.
+	var grow_up := card.size.y * (_card_scale() - 1.0) * 0.5
+	card.position = Vector2((screen.x - card.size.x) * 0.5, CARD_TOP + grow_up)
 	_pop_card()
 
 
+func _card_scale() -> float:
+	return TOUCH_CARD_SCALE if TouchControls.wanted() else 1.0
+
+
 func _pop_card() -> void:
+	var normal := Vector2.ONE * _card_scale()
 	card.pivot_offset = card.size * 0.5
-	card.scale = Vector2(1.08, 1.08)
-	card.create_tween().tween_property(card, "scale", Vector2.ONE, 0.25) \
+	card.scale = normal * 1.08
+	card.create_tween().tween_property(card, "scale", normal, 0.25) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 

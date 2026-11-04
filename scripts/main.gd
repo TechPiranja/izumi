@@ -3,6 +3,9 @@ extends Node2D
 
 
 func _ready() -> void:
+	if TouchControls.wanted():
+		add_child(TouchControls.new())
+
 	if GameMode.is_tutorial():
 		var tutorial := Tutorial.new()
 		tutorial.player = $Player

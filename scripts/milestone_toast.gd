@@ -7,6 +7,9 @@ const TITLE_FONT := preload("res://fonts/PixelifySans-Bold.ttf")
 const WING_TEXTURE := preload("res://sprites/wing.png")
 
 const MARGIN := 24.0
+## On touch devices the jump button sits bottom right, so the toast goes below the height number instead.
+const TOUCH_TOP := 110.0
+const TOUCH_RIGHT_MARGIN := 80.0
 const SLIDE_TIME := 0.45
 const STAY_TIME := 2.6
 const CONFETTI_COLORS := [
@@ -129,6 +132,9 @@ func _show_next() -> void:
 
 	var screen := get_viewport_rect().size
 	var target := Vector2(screen.x - size.x - MARGIN, screen.y - size.y - MARGIN)
+	if TouchControls.wanted():
+		var insets := TouchControls.safe_insets(get_viewport())
+		target = Vector2(screen.x - size.x - TOUCH_RIGHT_MARGIN - insets.y, TOUCH_TOP)
 	position = Vector2(screen.x + 20.0, target.y)
 	scale = Vector2.ONE
 	pivot_offset = size * 0.5
