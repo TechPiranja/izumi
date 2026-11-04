@@ -43,8 +43,9 @@ jobs:
       - name: Upload to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
-          ITCH_USER: ${{ vars.ITCH_USER }}
-          ITCH_GAME: ${{ vars.ITCH_GAME }}
+          # Works whether they were added as variables or as secrets.
+          ITCH_USER: ${{ vars.ITCH_USER || secrets.ITCH_USER }}
+          ITCH_GAME: ${{ vars.ITCH_GAME || secrets.ITCH_GAME }}
         shell: bash
         run: |
           # Say clearly which setting is missing (secrets and variables are per repository).
