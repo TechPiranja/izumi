@@ -1,0 +1,48 @@
+name: Deploy to itch.io
+
+# Every push to main exports the web version and uploads it to itch.io.
+# Needs these settings in the GitHub repository (Settings > Secrets and variables > Actions):
+#   secret   BUTLER_API_KEY  an API key from https://itch.io/user/settings/api-keys
+#   variable ITCH_USER       your itch.io user name
+#   variable ITCH_GAME       the project name in the itch.io URL, e.g. izumi
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up export templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      # The imported resources (.godot/) are not in git, so they are created first.
+      - name: Import resources
+        run: godot --headless --import || true
+
+      # itch.io starts the file called index.html.
+      - name: Export web version
+        run: |
+          mkdir -v -p build/web
+          godot --headless --verbose --export-release "Web" build/web/index.html
+
+      - name: Upload to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_USER: ${{ vars.ITCH_USER }}
+          ITCH_GAME: ${{ vars.ITCH_GAME }}
+        run: |
+          if ! command -v butler > /dev/null; then
+            curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+            unzip -o butler.zip -d butler-bin
+            chmod +x butler-bin/butler
+            export PATH="$PWD/butler-bin:$PATH"
+          fi
+          butler push build/web "$ITCH_USER/$ITCH_GAME:html5"
