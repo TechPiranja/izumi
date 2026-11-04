@@ -18,10 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # GitHub runs the steps with another home folder than the image, so the templates are moved over.
+      # The folder name is read from the image (not from $GODOT_VERSION, which is empty in this step).
       - name: Set up export templates
         run: |
           mkdir -v -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          for dir in /root/.local/share/godot/export_templates/*; do
+            name=$(basename "$dir")
+            mv -v "$dir" ~/.local/share/godot/export_templates/"${name%.stable}.stable"
+          done
+          ls ~/.local/share/godot/export_templates/
+          godot --version
 
       # The imported resources (.godot/) are not in git, so they are created first.
       - name: Import resources
