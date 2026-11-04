@@ -10,6 +10,16 @@ const BORDER := Color(0.76, 0.627, 0.416, 0.9)
 const GLYPH_COLOR := Color("6b4a2e")
 const MARGIN := 24.0
 const GAP := 20.0
+## All button sizes and distances below are multiplied by this.
+const SIZE_BOOST := 1.3
+## itch.io puts its fullscreen button in the bottom right corner, so the right buttons sit above
+## and next to it instead of on top of it.
+const RIGHT_LIFT := 90.0
+const RIGHT_MARGIN := 80.0
+## The size of one "pixel" of the buttons: the corners are cut in steps of this.
+const PIXEL := 10.0
+const SHADE := Color(0.25, 0.1, 0.0, 0.22)
+const HIGHLIGHT := Color(1.0, 1.0, 1.0, 0.4)
 const SIDE_SIZE := 150.0
 const JUMP_SIZE := 190.0
 const PING_SIZE := 120.0
@@ -23,7 +33,7 @@ const TILT_SMOOTHING := 15.0
 ## The input actions ignore weak values, so a tilt past the dead zone starts at this strength.
 const TILT_MIN_STRENGTH := 0.3
 ## A finger may be this much outside a button and still hit it.
-const TOUCH_PADDING := 10.0
+const TOUCH_PADDING := 16.0
 ## Sliding a finger from left to right (or back) switches the direction without lifting it.
 const SLIDE_ACTIONS := [&"move_left", &"move_right"]
 
@@ -39,8 +49,6 @@ var tilt_axis := Vector3.ZERO
 var tilt_scale := 1.0
 var tilt := 0.0
 var sent_strength := {&"move_left": 0.0, &"move_right": 0.0}
-var style_up: StyleBoxFlat
-var style_down: StyleBoxFlat
 
 
 ## True on phones and tablets. While testing on a computer, the project setting
@@ -77,9 +85,6 @@ func _ready() -> void:
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.draw.connect(_draw_pad)
 	add_child(pad)
-
-	style_up = _make_style(FILL)
-	style_down = _make_style(FILL_PRESSED)
 
 	_layout()
 	get_viewport().size_changed.connect(_layout)
@@ -167,31 +172,29 @@ func _input(event: InputEvent) -> void:
 func _layout() -> void:
 	var screen := get_viewport().get_visible_rect().size
 	var insets := safe_insets(get_viewport())
-	var bottom := screen.y - MARGIN
-	var left := insets.x + MARGIN
-	var right := screen.x - insets.y - MARGIN
+	var k := SIZE_BOOST
+	var side := SIDE_SIZE * k
+	var jump := JUMP_SIZE * k
+	var ping := PING_SIZE * k
+	var menu := MENU_SIZE * k
+	var gap := GAP * k
+	var bottom := screen.y - MARGIN * k
+	var right_bottom := bottom - RIGHT_LIFT
+	var left := insets.x + MARGIN * k
+	var right := screen.x - insets.y - RIGHT_MARGIN
 
 	buttons = [
-		_button(&"move_left", "left", Rect2(left, bottom - SIDE_SIZE, SIDE_SIZE, SIDE_SIZE)),
-		_button(&"move_right", "right", Rect2(left + SIDE_SIZE + GAP, bottom - SIDE_SIZE, SIDE_SIZE, SIDE_SIZE)),
-		_button(&"move_up", "up", Rect2(right - JUMP_SIZE, bottom - JUMP_SIZE, JUMP_SIZE, JUMP_SIZE)),
-		_button(&"ping", "ping", Rect2(right - JUMP_SIZE - GAP - PING_SIZE, bottom - PING_SIZE, PING_SIZE, PING_SIZE)),
-		_button(&"ui_cancel", "menu", Rect2((screen.x - MENU_SIZE) * 0.5, 12.0, MENU_SIZE, MENU_SIZE)),
+		_button(&"move_left", "left", Rect2(left, bottom - side, side, side)),
+		_button(&"move_right", "right", Rect2(left + side + gap, bottom - side, side, side)),
+		_button(&"move_up", "up", Rect2(right - jump, right_bottom - jump, jump, jump)),
+		_button(&"ping", "ping", Rect2(right - jump - gap - ping, right_bottom - ping, ping, ping)),
+		_button(&"ui_cancel", "menu", Rect2((screen.x - menu) * 0.5, 12.0, menu, menu)),
 	]
 	pad.queue_redraw()
 
 
 func _button(action: StringName, glyph: String, rect: Rect2) -> Dictionary:
 	return {"action": action, "glyph": glyph, "rect": rect}
-
-
-func _make_style(fill: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.border_color = BORDER
-	style.set_border_width_all(4)
-	style.set_corner_radius_all(14)
-	return style
 
 
 func _on_blackout_changed(_blind: bool, _instant: bool) -> void:
@@ -214,6 +217,11 @@ func _button_at(position: Vector2) -> int:
 	for i in buttons.size():
 		if _is_active(i) and buttons[i].rect.grow(TOUCH_PADDING).has_point(position):
 			return i
+	# Steering by tilt leaves the fingers free: a tap anywhere else is a jump.
+	if tilt_ready:
+		for i in buttons.size():
+			if buttons[i].action == &"move_up":
+				return i
 	return -1
 
 
@@ -253,31 +261,79 @@ func _draw_pad() -> void:
 		if not _is_active(i):
 			continue
 		var rect: Rect2 = buttons[i].rect
-		pad.draw_style_box(style_down if held.values().has(i) else style_up, rect)
+		_draw_pixel_box(rect, held.values().has(i))
 		draw_glyph(pad, buttons[i].glyph, rect.get_center(), rect.size.x * 0.22)
 
 
+## A button with cut, stair-stepped corners instead of round ones, like a pixel art sprite.
+## A light edge at the top and a dark one at the bottom make it look raised; pressed, it is flat.
+func _draw_pixel_box(rect: Rect2, pressed: bool) -> void:
+	var p := PIXEL
+	var b := PIXEL * 0.5
+	var x := rect.position.x
+	var y := rect.position.y
+	var w := rect.size.x
+	var h := rect.size.y
+	var outline := PackedVector2Array([
+		Vector2(x + p, y), Vector2(x + w - p, y), Vector2(x + w - p, y + b),
+		Vector2(x + w - b, y + b), Vector2(x + w - b, y + p), Vector2(x + w, y + p),
+		Vector2(x + w, y + h - p), Vector2(x + w - b, y + h - p), Vector2(x + w - b, y + h - b),
+		Vector2(x + w - p, y + h - b), Vector2(x + w - p, y + h), Vector2(x + p, y + h),
+		Vector2(x + p, y + h - b), Vector2(x + b, y + h - b), Vector2(x + b, y + h - p),
+		Vector2(x, y + h - p), Vector2(x, y + p), Vector2(x + b, y + p),
+		Vector2(x + b, y + b), Vector2(x + p, y + b),
+	])
+	pad.draw_colored_polygon(outline, FILL_PRESSED if pressed else FILL)
+	var closed := outline.duplicate()
+	closed.append(outline[0])
+	pad.draw_polyline(closed, BORDER, b)
+
+	var inner_x := x + p
+	var inner_w := w - 2.0 * p
+	if pressed:
+		pad.draw_rect(Rect2(inner_x, y + b, inner_w, p * 0.8), SHADE)
+	else:
+		pad.draw_rect(Rect2(inner_x, y + b, inner_w, p * 0.4), HIGHLIGHT)
+		pad.draw_rect(Rect2(inner_x, y + h - b - p * 0.8, inner_w, p * 0.8), SHADE)
+
+
 ## Draws a button symbol ("left", "right", "up", "ping" or "menu") with the given half-size `s`.
-## Static, so the tutorial can show the very same shapes on its key caps.
+## Static, so the tutorial can show the very same shapes on its key caps. Made of square blocks.
 static func draw_glyph(canvas: CanvasItem, glyph: String, center: Vector2, s: float) -> void:
 	match glyph:
 		"left":
-			_triangle(canvas, center, [Vector2(-s, 0.0), Vector2(s * 0.8, -s), Vector2(s * 0.8, s)])
+			_pixel_arrow(canvas, center, Vector2.LEFT, s)
 		"right":
-			_triangle(canvas, center, [Vector2(s, 0.0), Vector2(-s * 0.8, -s), Vector2(-s * 0.8, s)])
+			_pixel_arrow(canvas, center, Vector2.RIGHT, s)
 		"up":
-			_triangle(canvas, center, [Vector2(0.0, -s), Vector2(-s, s * 0.8), Vector2(s, s * 0.8)])
+			_pixel_arrow(canvas, center, Vector2.UP, s)
 		"ping":
-			canvas.draw_arc(center, s, 0.0, TAU, 32, GLYPH_COLOR, maxf(s * 0.25, 3.0))
-			canvas.draw_circle(center, s * 0.3, GLYPH_COLOR)
+			var p := maxf(roundf(s / 3.5), 2.0)
+			var cells := int(s / p) + 1
+			for gx in range(-cells, cells + 1):
+				for gy in range(-cells, cells + 1):
+					var distance := Vector2(gx, gy).length() * p
+					if distance <= s and distance > s - p * 1.4:
+						canvas.draw_rect(Rect2(center + (Vector2(gx, gy) - Vector2(0.5, 0.5)) * p, Vector2(p, p)), GLYPH_COLOR)
+			canvas.draw_rect(Rect2(center - Vector2(p, p) * 0.5, Vector2(p, p)), GLYPH_COLOR)
 		"menu":
 			# A little house.
-			_triangle(canvas, center, [Vector2(0.0, -s), Vector2(-s, 0.0), Vector2(s, 0.0)])
-			canvas.draw_rect(Rect2(center + Vector2(-s * 0.7, 0.0), Vector2(s * 1.4, s * 0.9)), GLYPH_COLOR)
+			_pixel_arrow(canvas, center + Vector2(0.0, -s * 0.35), Vector2.UP, s * 0.8)
+			canvas.draw_rect(Rect2(center + Vector2(-s * 0.6, s * 0.1), Vector2(s * 1.2, s * 0.7)), GLYPH_COLOR)
 
 
-static func _triangle(canvas: CanvasItem, center: Vector2, corners: Array) -> void:
-	var points := PackedVector2Array()
-	for corner in corners:
-		points.append(center + corner)
-	canvas.draw_colored_polygon(points, GLYPH_COLOR)
+## An arrow head in five steps of square blocks, pointing in `direction` (left, right or up).
+static func _pixel_arrow(canvas: CanvasItem, center: Vector2, direction: Vector2, s: float) -> void:
+	var p := maxf(roundf(s / 4.0), 2.0)
+	for i in 5:
+		# Each row (or column) is wider than the one before, starting at the tip.
+		var length := (2 * i + 1) * p
+		var offset := (i - 2.5) * p
+		var rect: Rect2
+		if direction == Vector2.UP:
+			rect = Rect2(center.x - length * 0.5, center.y + offset, length, p)
+		elif direction == Vector2.LEFT:
+			rect = Rect2(center.x + offset, center.y - length * 0.5, p, length)
+		else:
+			rect = Rect2(center.x - offset - p, center.y - length * 0.5, p, length)
+		canvas.draw_rect(rect, GLYPH_COLOR)

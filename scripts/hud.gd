@@ -8,7 +8,14 @@ const NUMBER_FONT := preload("res://fonts/PixelifySans-Bold.ttf")
 ## Where the ping pie sits, right of the wing slots.
 const PING_PIE_POSITION := Vector2(236.0, 16.0)
 ## The wing slots are bigger on touch devices, so they stay readable on a small screen.
-const TOUCH_SLOT_SCALE := 1.4
+const TOUCH_SLOT_SCALE := 1.9
+## The height number, the wing icon and the blocks on the right are bigger on touch devices, too.
+const TOUCH_SCORE_SCALE := 1.5
+## The ping pie is a bit smaller than the wing slots; it sits below them on touch devices.
+const TOUCH_PIE_SCALE := 1.6
+const SLOT_SIZE := 64.0
+## Top of the wing icon (original layout); it moves down when the height number gets bigger.
+const SCORE_ICON_TOP := 74.0
 ## Falling this far below the start (in meters) ends the run.
 const FALL_LIMIT_METERS := 2.0
 const SEGMENT_SIZE := Vector2(18.0, 18.0)
@@ -35,6 +42,8 @@ const TICK_STEPS := [0, 2, 4, 7, 9, 12, 14, 16, 19, 21]
 
 ## Space the phone's notch and rounded corners take on the left (x) and right (y).
 var safe_insets := Vector2.ZERO
+## 1 on a computer, bigger on touch devices: the scale of the score on the right.
+var ui_scale := 1.0
 ## The player's y position at the start, used as height 0.
 var start_y: float
 var best_height := 0.0
@@ -73,10 +82,30 @@ func _apply_safe_area() -> void:
 	wing_slots.offset_left += safe_insets.x
 	wing_slots.offset_right += safe_insets.x
 	if TouchControls.wanted():
+		ui_scale = TOUCH_SCORE_SCALE
 		wing_slots.scale = Vector2.ONE * TOUCH_SLOT_SCALE
+		_enlarge_score()
 	for control: Control in [label, goal_icon, segments]:
 		control.offset_left -= safe_insets.y
 		control.offset_right -= safe_insets.y
+
+
+## Makes the height number, the wing icon and the column of blocks bigger, keeping them stacked.
+func _enlarge_score() -> void:
+	label.add_theme_font_size_override("font_size", int(60.0 * ui_scale))
+
+	var icon_size := 30.0 * ui_scale
+	var icon_top := SCORE_ICON_TOP * ui_scale
+	goal_icon.offset_left = -10.0 - icon_size
+	goal_icon.offset_right = -10.0
+	goal_icon.offset_top = icon_top
+	goal_icon.offset_bottom = icon_top + icon_size
+
+	segments.offset_left = -16.0 - SEGMENT_SIZE.x * ui_scale
+	segments.offset_right = -16.0
+	segments.offset_top = icon_top + icon_size + 8.0
+	segments.offset_bottom = segments.offset_top + 220.0 * ui_scale
+	segments.add_theme_constant_override("separation", int(4.0 * ui_scale))
 
 
 func _process(_delta: float) -> void:
@@ -168,11 +197,18 @@ func _punch_label(strength: float) -> void:
 func _build_ping_pie() -> void:
 	ping_pie = PingPie.new()
 	ping_pie.position = PING_PIE_POSITION + Vector2(safe_insets.x, 0.0)
-	if TouchControls.wanted():
-		# Bigger wing slots are wider, so the pie moves along.
-		ping_pie.position.x += PING_PIE_POSITION.x * (TOUCH_SLOT_SCALE - 1.0)
 	ping_pie.visible = Blackout.is_blind
 	add_child(ping_pie)
+
+	if TouchControls.wanted():
+		# Below the big wing slots. The pie scales around its middle, so the position is moved by
+		# the amount it grows towards the top left.
+		var rest := Vector2.ONE * TOUCH_PIE_SCALE
+		ping_pie.set_meta("rest_scale", rest)
+		ping_pie.scale = rest
+		ping_pie.pivot_offset = ping_pie.size * 0.5
+		var wanted_top_left := Vector2(16.0 + safe_insets.x, 16.0 + SLOT_SIZE * TOUCH_SLOT_SCALE + 14.0)
+		ping_pie.position = wanted_top_left + ping_pie.pivot_offset * (rest - Vector2.ONE)
 
 	Blackout.changed.connect(_on_blackout_changed)
 
@@ -191,7 +227,7 @@ func _build_segments() -> void:
 
 	for i in milestone_meters / tick_meters:
 		var segment := Panel.new()
-		segment.custom_minimum_size = SEGMENT_SIZE
+		segment.custom_minimum_size = SEGMENT_SIZE * ui_scale
 		segment.add_theme_stylebox_override("panel", empty_style)
 		segments.add_child(segment)
 
@@ -236,11 +272,12 @@ func _set_segment(index: int, filled: bool, pop: bool) -> void:
 		_pop_control(segment, 1.6)
 
 
-## Scales a control up around its center and lets it spring back.
+## Scales a control up around its center and lets it spring back (to its "rest_scale", if it has one).
 func _pop_control(control: Control, strength: float) -> void:
+	var rest: Vector2 = control.get_meta("rest_scale", Vector2.ONE)
 	control.pivot_offset = control.size * 0.5
-	control.scale = Vector2(strength, strength)
-	control.create_tween().tween_property(control, "scale", Vector2.ONE, 0.25) \
+	control.scale = rest * strength
+	control.create_tween().tween_property(control, "scale", rest, 0.25) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
@@ -249,18 +286,18 @@ func _show_number(index: int, meters: int) -> void:
 	var segment: Panel = segments.get_child(segments.get_child_count() - 1 - index)
 	var number := Label.new()
 	number.text = str(meters)
-	number.custom_minimum_size = Vector2(60.0, 0.0)
+	number.custom_minimum_size = Vector2(60.0 * ui_scale, 0.0)
 	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	number.add_theme_font_override("font", NUMBER_FONT)
-	number.add_theme_font_size_override("font_size", 28)
+	number.add_theme_font_size_override("font_size", int(28.0 * ui_scale))
 	number.add_theme_color_override("font_color", Color("fff4dc"))
 	number.add_theme_color_override("font_outline_color", Color(0.1, 0.1, 0.2, 0.7))
 	number.add_theme_constant_override("outline_size", 5)
 	add_child(number)
-	number.global_position = segment.global_position + Vector2(-70.0, -8.0)
+	number.global_position = segment.global_position + Vector2(-70.0, -8.0) * ui_scale
 
 	var tween := number.create_tween().set_parallel(true)
-	tween.tween_property(number, "position:x", number.position.x - 24.0, 1.0) \
+	tween.tween_property(number, "position:x", number.position.x - 24.0 * ui_scale, 1.0) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(number, "modulate:a", 0.0, 0.5).set_delay(0.6)
 	tween.chain().tween_callback(number.queue_free)

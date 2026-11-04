@@ -8,8 +8,8 @@ const WING_TEXTURE := preload("res://sprites/wing.png")
 
 const MARGIN := 24.0
 ## On touch devices the jump button sits bottom right, so the toast goes below the height number instead.
-const TOUCH_TOP := 110.0
-const TOUCH_RIGHT_MARGIN := 80.0
+const TOUCH_TOP := 170.0
+const TOUCH_RIGHT_MARGIN := 100.0
 const SLIDE_TIME := 0.45
 const STAY_TIME := 2.6
 const CONFETTI_COLORS := [
